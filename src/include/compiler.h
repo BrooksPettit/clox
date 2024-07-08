@@ -3,6 +3,6 @@
 
 #include "chunk.h"
 
-void compile(const char* source, Chunk* chunk);
+bool compile(const char* source, Chunk* chunk);
 
 #endif /* clox_compiler_h */
