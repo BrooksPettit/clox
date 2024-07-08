@@ -1,0 +1,4 @@
+#usr/bin/sh
+CWD=`pwd`
+INCLUDES=$CWD/src/include
+export C_INCLUDE_PATH=$C_INCLUDE_PATH:$INCLUDES
