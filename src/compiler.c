@@ -5,6 +5,10 @@
 #include "compiler.h"
 #include "scanner.h"
 
+#ifdef DEBUG_PRINT_CODE
+#include "debug.h"
+#endif
+
 typedef struct {
     Token current;
     Token previous;
@@ -52,7 +56,7 @@ static void errorAt(Token* token, const char* message) {
     } else if (token->type == TOKEN_ERROR) {
         // Nothing
     } else {
-        fprintf(stderr, " at '%s.*s'", token->length, token->start);
+        fprintf(stderr, " at '%.*s'", token->length, token->start);
     }
     fprintf(stderr, ": %s\n", message);
     parser.hadError = true;
@@ -115,19 +119,17 @@ static void emitConstant(Value value) {
 
 static void endCompiler() {
     emitReturn();
+
+#ifdef DEBUG_PRINT_CODE
+    if (!parser.hadError) {
+        disassembleChunk(currentChunk(), "code");
+    }
+#endif
 } /* endCompiler */
 
-static void expresison();
+static void expression();
 static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
-
-static void parsePrecedence(Precedence precedence) {
-    // Something goes here
-} /* parsePrecedence */
-
-static ParseRule* getRule(TokenType type) {
-    return &rules[type];
-} /* getRule */
 
 static void binary() {
     TokenType operatorType = parser.previous.type;
@@ -155,7 +157,9 @@ static void number() {
 
 static void unary() {
     TokenType operatorType = parser.previous.type;
-// Compile this operand parsePrecedence(PREC_UNARY);
+    // Compile this operand
+    parsePrecedence(PREC_UNARY);
+
     // Emit the operator instruction
     switch (operatorType) {
         case TOKEN_MINUS: emitByte(OP_NEGATE); break;
@@ -205,6 +209,27 @@ ParseRule rules[] = {
     [TOKEN_ERROR] = {NULL, NULL, PREC_NONE},
     [TOKEN_EOF] = {NULL, NULL, PREC_NONE},
 };
+
+static void parsePrecedence(Precedence precedence) {
+    advance();
+    ParseFn prefixRule = getRule(parser.previous.type)->prefix;
+    if (prefixRule == NULL) {
+        error("Expect expresison.");
+        return;
+    }
+
+    prefixRule();
+
+    while (precedence <= getRule(parser.current.type)->precedence) {
+        advance();
+        ParseFn infixRule = getRule(parser.previous.type)->infix;
+        infixRule();
+    }
+} /* parsePrecedence */
+
+static ParseRule* getRule(TokenType type) {
+    return &rules[type];
+} /* getRule */
 
 static void expression() {
     parsePrecedence(PREC_ASSIGNMENT);
