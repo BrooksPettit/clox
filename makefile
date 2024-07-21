@@ -35,4 +35,4 @@ clean:
 -include $(DEPS)
 
 tags: $(SRCS)
-	ctags -R --fields=+l $(SRC_DIRS)
+	ctags -R --langmap=C:.c.h --fields=+l $(SRC_DIRS)
